@@ -21,12 +21,14 @@ var Footer = ""
 var Logo = ""
 var TopUpLink = ""
 var ChatLink = ""
+var ChatLink2 = ""
 var QuotaPerUnit = 500 * 1000.0 // $0.002 / 1K tokens
 var DisplayInCurrencyEnabled = true
 var DisplayTokenStatEnabled = true
 var DrawingEnabled = true
 var DataExportEnabled = true
-var DataExportInterval = 5 // unit: minute
+var DataExportInterval = 5         // unit: minute
+var DataExportDefaultTime = "hour" // unit: minute
 
 // Any options with "Secret", "Token" in its key won't be return by GetOptions
 

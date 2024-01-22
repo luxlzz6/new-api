@@ -76,9 +76,11 @@ func InitOptionMap() {
 	common.OptionMap["GroupRatio"] = common.GroupRatio2JSONString()
 	common.OptionMap["TopUpLink"] = common.TopUpLink
 	common.OptionMap["ChatLink"] = common.ChatLink
+	common.OptionMap["ChatLink2"] = common.ChatLink2
 	common.OptionMap["QuotaPerUnit"] = strconv.FormatFloat(common.QuotaPerUnit, 'f', -1, 64)
 	common.OptionMap["RetryTimes"] = strconv.Itoa(common.RetryTimes)
 	common.OptionMap["DataExportInterval"] = strconv.Itoa(common.DataExportInterval)
+	common.OptionMap["DataExportDefaultTime"] = common.DataExportDefaultTime
 
 	common.OptionMapRWMutex.Unlock()
 	loadOptionsFromDatabase()
@@ -228,6 +230,8 @@ func updateOptionMap(key string, value string) (err error) {
 		common.RetryTimes, _ = strconv.Atoi(value)
 	case "DataExportInterval":
 		common.DataExportInterval, _ = strconv.Atoi(value)
+	case "DataExportDefaultTime":
+		common.DataExportDefaultTime = value
 	case "ModelRatio":
 		err = common.UpdateModelRatioByJSONString(value)
 	case "GroupRatio":
@@ -238,6 +242,8 @@ func updateOptionMap(key string, value string) (err error) {
 		common.TopUpLink = value
 	case "ChatLink":
 		common.ChatLink = value
+	case "ChatLink2":
+		common.ChatLink2 = value
 	case "ChannelDisableThreshold":
 		common.ChannelDisableThreshold, _ = strconv.ParseFloat(value, 64)
 	case "QuotaPerUnit":

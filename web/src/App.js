@@ -51,10 +51,16 @@ function App() {
       localStorage.setItem('display_in_currency', data.display_in_currency);
       localStorage.setItem('enable_drawing', data.enable_drawing);
       localStorage.setItem('enable_data_export', data.enable_data_export);
+      localStorage.setItem('data_export_default_time', data.data_export_default_time);
       if (data.chat_link) {
         localStorage.setItem('chat_link', data.chat_link);
       } else {
         localStorage.removeItem('chat_link');
+      }
+      if (data.chat_link2) {
+        localStorage.setItem('chat_link2', data.chat_link2);
+      } else {
+        localStorage.removeItem('chat_link2');
       }
       // if (
       //   data.version !== process.env.REACT_APP_VERSION &&
