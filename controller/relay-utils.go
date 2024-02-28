@@ -258,6 +258,19 @@ func shouldDisableChannel(err *OpenAIError, statusCode int) bool {
 	return false
 }
 
+func shouldEnableChannel(err error, openAIErr *OpenAIError) bool {
+	if !common.AutomaticEnableChannelEnabled {
+		return false
+	}
+	if err != nil {
+		return false
+	}
+	if openAIErr != nil {
+		return false
+	}
+	return true
+}
+
 func setEventStreamHeaders(c *gin.Context) {
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
 	c.Writer.Header().Set("Cache-Control", "no-cache")
@@ -295,9 +308,13 @@ func relayErrorHandler(resp *http.Response) (openAIErrorWithStatusCode *OpenAIEr
 
 func getFullRequestURL(baseURL string, requestURL string, channelType int) string {
 	fullRequestURL := fmt.Sprintf("%s%s", baseURL, requestURL)
-	if channelType == common.ChannelTypeOpenAI {
-		if strings.HasPrefix(baseURL, "https://gateway.ai.cloudflare.com") {
+
+	if strings.HasPrefix(baseURL, "https://gateway.ai.cloudflare.com") {
+		switch channelType {
+		case common.ChannelTypeOpenAI:
 			fullRequestURL = fmt.Sprintf("%s%s", baseURL, strings.TrimPrefix(requestURL, "/v1"))
+		case common.ChannelTypeAzure:
+			fullRequestURL = fmt.Sprintf("%s%s", baseURL, strings.TrimPrefix(requestURL, "/openai/deployments"))
 		}
 	}
 	return fullRequestURL
