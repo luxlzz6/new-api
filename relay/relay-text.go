@@ -2,6 +2,7 @@ package relay
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -59,7 +60,6 @@ func getAndValidateTextRequest(c *gin.Context, relayInfo *relaycommon.RelayInfo)
 		}
 	}
 	relayInfo.IsStream = textRequest.Stream
-	relayInfo.UpstreamModelName = textRequest.Model
 	return textRequest, nil
 }
 
@@ -85,9 +85,11 @@ func TextHelper(c *gin.Context) *dto.OpenAIErrorWithStatusCode {
 		}
 		if modelMap[textRequest.Model] != "" {
 			textRequest.Model = modelMap[textRequest.Model]
+			// set upstream model name
 			isModelMapped = true
 		}
 	}
+	relayInfo.UpstreamModelName = textRequest.Model
 	modelPrice := common.GetModelPrice(textRequest.Model, false)
 	groupRatio := common.GetGroupRatio(relayInfo.Group)
 
@@ -115,7 +117,7 @@ func TextHelper(c *gin.Context) *dto.OpenAIErrorWithStatusCode {
 
 	// pre-consume quota 预消耗配额
 	preConsumedQuota, userQuota, openaiErr := preConsumeQuota(c, preConsumedQuota, relayInfo)
-	if err != nil {
+	if openaiErr != nil {
 		return openaiErr
 	}
 
@@ -148,10 +150,19 @@ func TextHelper(c *gin.Context) *dto.OpenAIErrorWithStatusCode {
 	}
 
 	resp, err := adaptor.DoRequest(c, relayInfo, requestBody)
+	if err != nil {
+		return service.OpenAIErrorWrapper(err, "do_request_failed", http.StatusInternalServerError)
+	}
 	relayInfo.IsStream = relayInfo.IsStream || strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream")
+
+	if resp.StatusCode != http.StatusOK {
+		returnPreConsumedQuota(c, relayInfo.TokenId, userQuota, preConsumedQuota)
+		return service.RelayErrorHandler(resp)
+	}
 
 	usage, openaiErr := adaptor.DoResponse(c, resp, relayInfo)
 	if openaiErr != nil {
+		returnPreConsumedQuota(c, relayInfo.TokenId, userQuota, preConsumedQuota)
 		return openaiErr
 	}
 	postConsumeQuota(c, relayInfo, *textRequest, usage, ratio, preConsumedQuota, userQuota, modelRatio, groupRatio, modelPrice)
@@ -169,6 +180,8 @@ func getPromptTokens(textRequest *dto.GeneralOpenAIRequest, info *relaycommon.Re
 		promptTokens, err = service.CountTokenInput(textRequest.Prompt, textRequest.Model), nil
 	case relayconstant.RelayModeModerations:
 		promptTokens, err = service.CountTokenInput(textRequest.Input, textRequest.Model), nil
+	case relayconstant.RelayModeEmbeddings:
+		promptTokens, err = service.CountTokenInput(textRequest.Input, textRequest.Model), nil
 	default:
 		err = errors.New("unknown relay mode")
 		promptTokens = 0
@@ -183,7 +196,7 @@ func preConsumeQuota(c *gin.Context, preConsumedQuota int, relayInfo *relaycommo
 	if err != nil {
 		return 0, 0, service.OpenAIErrorWrapper(err, "get_user_quota_failed", http.StatusInternalServerError)
 	}
-	if userQuota < 0 || userQuota-preConsumedQuota < 0 {
+	if userQuota <= 0 || userQuota-preConsumedQuota < 0 {
 		return 0, 0, service.OpenAIErrorWrapper(errors.New("user quota is not enough"), "insufficient_user_quota", http.StatusForbidden)
 	}
 	err = model.CacheDecreaseUserQuota(relayInfo.UserId, preConsumedQuota)
@@ -214,6 +227,18 @@ func preConsumeQuota(c *gin.Context, preConsumedQuota int, relayInfo *relaycommo
 		}
 	}
 	return preConsumedQuota, userQuota, nil
+}
+
+func returnPreConsumedQuota(c *gin.Context, tokenId int, userQuota int, preConsumedQuota int) {
+	if preConsumedQuota != 0 {
+		go func(ctx context.Context) {
+			// return pre-consumed quota
+			err := model.PostConsumeTokenQuota(tokenId, userQuota, -preConsumedQuota, 0, false)
+			if err != nil {
+				common.SysError("error return pre-consumed quota: " + err.Error())
+			}
+		}(c)
+	}
 }
 
 func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, textRequest dto.GeneralOpenAIRequest, usage *dto.Usage, ratio float64, preConsumedQuota int, userQuota int, modelRatio float64, groupRatio float64, modelPrice float64) {

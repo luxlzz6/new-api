@@ -51,6 +51,7 @@ var PasswordRegisterEnabled = true
 var EmailVerificationEnabled = false
 var GitHubOAuthEnabled = false
 var WeChatAuthEnabled = false
+var TelegramOAuthEnabled = false
 var TurnstileCheckEnabled = false
 var RegisterEnabled = true
 
@@ -87,6 +88,9 @@ var WeChatAccountQRCodeImageURL = ""
 
 var TurnstileSiteKey = ""
 var TurnstileSecretKey = ""
+
+var TelegramBotToken = ""
+var TelegramBotName = ""
 
 var QuotaForNewUser = 0
 var QuotaForInviter = 0
@@ -182,9 +186,9 @@ const (
 const (
 	ChannelTypeUnknown        = 0
 	ChannelTypeOpenAI         = 1
-	ChannelTypeAPI2D          = 2
+	ChannelTypeMidjourney     = 2
 	ChannelTypeAzure          = 3
-	ChannelTypeCloseAI        = 4
+	ChannelTypeOllama         = 4
 	ChannelTypeOpenAISB       = 5
 	ChannelTypeOpenAIMax      = 6
 	ChannelTypeOhMyGPT        = 7
@@ -214,7 +218,7 @@ var ChannelBaseURLs = []string{
 	"https://api.openai.com",            // 1
 	"https://oa.api2d.net",              // 2
 	"",                                  // 3
-	"https://api.closeai-proxy.xyz",     // 4
+	"http://localhost:11434",            // 4
 	"https://api.openai-sb.com",         // 5
 	"https://api.openaimax.com",         // 6
 	"https://api.ohmygpt.com",           // 7
@@ -234,7 +238,7 @@ var ChannelBaseURLs = []string{
 	"https://api.aiproxy.io",            // 21
 	"https://fastgpt.run/api/openapi",   // 22
 	"https://hunyuan.cloud.tencent.com", //23
-	"",                                  //24
-	"https://api.moonshot.cn",           //25
-	"https://open.bigmodel.cn",          //26
+	"https://generativelanguage.googleapis.com", //24
+	"https://api.moonshot.cn",                   //25
+	"https://open.bigmodel.cn",                  //26
 }
